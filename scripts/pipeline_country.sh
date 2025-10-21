@@ -110,3 +110,29 @@ printf '{"iso":"%s","scan_time_iso":"%s","file":"%s","lines":%s}\n' \
 
 echo "[✓] done: ${OUTFILE} (${COUNT} lines)"
 echo "    latest -> $(readlink -f "${OUT_DIR}/latest")"
+
+if [ -L "${OUT_DIR}/latest" ]; then
+  LATEST="$(readlink -f "${OUT_DIR}/latest")"
+else
+  # fallback: pick most recent timestamped file
+  LATEST="$(ls -1 "${OUT_DIR}/${ISO}-"*.jsonl 2>/dev/null | sort | tail -1)"
+fi
+
+if [ -n "${LATEST:-}" ] && [ -f "$LATEST" ]; then
+  # GNU sort in-place; if uncertain, use the temp-file fallback below
+  sort -u -o "$LATEST" "$LATEST"
+  # Temp-file fallback:
+  # tmp="${LATEST}.tmp"; sort -u "$LATEST" > "$tmp" && mv "$tmp" "$LATEST"
+else
+  echo "[!] Could not resolve latest file to dedupe (symlink or file missing)" >&2
+fi
+
+# totals
+wc -l "$LATEST"
+jq -r '.ip' "$LATEST" | sort -u | wc -l
+jq -r '.ip+":"+(.port|tostring)' "$LATEST" | sort -u | wc -l
+
+# top ports / ASNs / orgs
+jq -r '.port' "$LATEST" | sort | uniq -c | sort -nr | head
+jq -r 'select(.asn) | .asn' "$LATEST" | sort | uniq -c | sort -nr | head
+jq -r 'select(.whois_org) | .whois_org' "$LATEST" | sed 's/\s\+/ /g' | sort | uniq -c | sort -nr | head
