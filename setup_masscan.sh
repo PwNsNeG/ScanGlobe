@@ -12,7 +12,7 @@ PREFIX="/usr/local"
 echo "[*] Updating package lists and installing build dependencies..."
 sudo apt-get update
 sudo apt-get --assume-yes install git make gcc build-essential libpcap-dev ca-certificates
-
+sudo apt-get -y install whois
 # ===== Clone & build masscan =====
 WORKDIR="$(mktemp -d)"
 echo "[*] Cloning masscan into $WORKDIR"
